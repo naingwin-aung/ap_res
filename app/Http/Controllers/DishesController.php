@@ -2,14 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Dish;
+use App\Models\Order;
+use App\Models\Category;
+use Illuminate\Http\Request;
 use App\Http\Requests\DishStoreRequest;
 use App\Http\Requests\DishUpdateRequest;
-use App\Models\Category;
-use App\Models\Dish;
-use Illuminate\Http\Request;
 
 class DishesController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -108,5 +114,40 @@ class DishesController extends Controller
     {
         $dish->delete();
         return redirect('/dish')->with('message', "Dish Remove Successfully!");
+    }
+
+    public function order() 
+    {
+        $rawstatus = config('res.order_status');
+        $status = array_flip($rawstatus);
+        $orders = Order::orderBy('created_at', 'desc')->get()->filter(function ($val) {
+            return $val->status == 1 || $val->status == 2;
+        });
+
+        return view('Kitchen.order', compact('orders', 'status'));
+    }
+    
+    public function approve(Order $order) 
+    {
+        $order->status = config('res.order_status.Processing');
+        $order->save();
+
+        return back()->with('message', 'Order Approve');
+    }
+
+    public function cancle(Order $order) 
+    {
+        $order->status = config('res.order_status.Cancle');
+        $order->save();
+
+        return back()->with('message', 'Order Reject');
+    }
+
+    public function ready(Order $order) 
+    {
+        $order->status = config('res.order_status.Ready');
+        $order->save();
+
+        return back()->with('message', 'Order Ready');
     }
 }
